@@ -1,18 +1,18 @@
-SHELL = /usr/bin/bash
+SHELL = /usr/bin/env bash
 
 SNAKEFILE = workflow/Snakefile
+PWD = $(shell pwd)
+
+ISCAN_VERSION = 5.73-104.0
+MINIFORGE_VERSION = 25.1.1-0
 
 CORES = all
-ISCAN_VERSION = 5.73-104.0
-CACHE = ~/.local/snakemake
+# Needs to be an absolute path
+CACHE = $(PWD)/cache
 
-SETUP_CACHE = mkdir -p $(CACHE) &&\
-              export SNAKEMAKE_OUTPUT_CACHE=$(CACHE)
+SETUP_CACHE = mkdir -p $(CACHE) && export SNAKEMAKE_OUTPUT_CACHE=$(CACHE)
 
-SNAKEMAKE = $(SETUP_CACHE) &&\
-            snakemake --cores $(CORES)\
-                      --cache\
-                      --printshellcmds
+SNAKEMAKE = $(SETUP_CACHE) && snakemake --cores $(CORES) --cache --printshellcmds
 
 CONFIG = tests/config.yaml
 GENOMES = tests/genomes.txt
@@ -23,21 +23,76 @@ FIG_NAMES = dag filegraph rulegraph
 SVGS = $(foreach i,$(FIG_NAMES),$(FIG_DIR)/$(i).svg)
 PNGS = $(foreach i,$(FIG_NAMES),$(FIG_DIR)/$(i).png)
 
-CLEAN = .snakemake $(FIG_DIR) $(RESULTS)
-
-ISCAN_SCRIPT =  utils/install_iscan.py
-ISCAN_DATA = ~/.local/share
-ISCAN_BIN = ~/.local/bin/interproscan.sh
+ISCAN_SCRIPT = utils/install_iscan.py
+ISCAN_DATA = $(PWD)
+ISCAN_DRY = --dry
 
 RM_TEST = tests/rm_except_genomes.py
 
-SERVER = https://github.com/conda-forge/miniforge/releases/download/24.11.3-0
-
-MINIFORGE = Miniforge3-24.11.3-0-Linux-x86_64.sh
+MINIFORGE_INSTALL_DIR = $(shell printf "$$HOME")/miniforge3
+SERVER = https://github.com/conda-forge/miniforge/releases/download/$(MINIFORGE_VERSION)
+MINIFORGE = Miniforge3-$(MINIFORGE_VERSION)-Linux-x86_64.sh
 LINK_MINIFORGE = $(SERVER)/$(MINIFORGE)
-
 SHA256 = $(MINIFORGE).sha256
 LINK_SHA256 = $(SERVER)/$(SHA256)
+
+DEBUG = debug.py
+CLEAN = .snakemake $(FIG_DIR) $(RESULTS) $(MINIFORGE) $(SHA256) $(CACHE) $(DEBUG)
+
+R_LIBS_SCRIPT = utils/install_Rlibs.R
+
+
+.PHONY help:
+help:
+	@printf "The following are the available rules:\n\n"
+	@awk -F':' '/^[a-zA-Z0-9_-]+:/ {print $$1}' Makefile
+	@printf "\nA debugging rule is included.\n"
+	@printf	"    To use it:\n"
+	@printf "        make print-VARIABLE\n"
+	@printf "    To list all the variables run:\n"
+	@printf "        make print-vars\n"
+
+
+.PHONY print-vars:
+print-vars:
+	@grep '^[a-zA-Z0-9_]\+ *=' Makefile
+
+
+print-%:
+	@printf "$* = $($*)"
+
+
+$(MINIFORGE):
+	wget '$(LINK_MINIFORGE)'
+	wget '$(LINK_SHA256)'
+	sha256sum -c '$(SHA256)'
+
+
+.PHONY install-mamba:
+install-mamba: $(MINIFORGE)
+	chmod +x $<
+	./$< -b -u -p $(MINIFORGE_INSTALL_DIR)
+
+
+.PHONY install-iscan:
+install-iscan: $(ISCAN_SCRIPT)
+	@if [[ ! -z "$(ISCAN_DRY)" ]]; then printf "DRY RUN MODE\n"; fi
+	@if [[ ! -z "$(ISCAN_DRY)" ]]; then printf "to use the real thing, do:\n\n    make install-iscan ISCAN_DRY=''\n\n"; fi
+	$< --target $(ISCAN_VERSION) --data $(ISCAN_DATA) $(ISCAN_DRY)
+
+
+.PHONY install-Rlibs:
+install-Rlibs: $(R_LIBS_SCRIPT)
+	$<
+
+
+.PHONY test:
+test: $(SNAKEFILE) $(GENOMES) $(CONFIG) $(RM_TEST)
+	@printf "Before looking for errors, run:\n"
+	@printf "make clean\n\n"
+	$(RM_TEST)
+	$(SNAKEMAKE) --configfile $(CONFIG)
+
 
 .PHONY test-dry:
 test-dry: $(SNAKEFILE) $(GENOMES) $(CONFIG) $(RM_TEST)
@@ -45,41 +100,17 @@ test-dry: $(SNAKEFILE) $(GENOMES) $(CONFIG) $(RM_TEST)
 	$(SNAKEMAKE) --configfile $(CONFIG) -np
 
 
-.PHONY test:
-test: $(SNAKEFILE) $(GENOMES) $(CONFIG) $(RM_TEST)
-	@printf "Before looking for errors, clean-cache.\n\n"
-	$(RM_TEST)
-	$(SNAKEMAKE) --configfile $(CONFIG)
-
-
-.PHONY test-offline:
-test-offline: $(SNAKEFILE) $(GENOMES) $(CONFIG)
-	$(RM_TEST)
-	$(SNAKEMAKE) --configfile $(CONFIG) --config offline=true
-
-
-.PHONY test-mtime:
-test-mtime: $(SNAKEFILE) $(GENOMES) $(CONFIG)
-	$(RM_TEST)
-	$(SNAKEMAKE) --configfile $(CONFIG) --rerun-triggers mtime
-
-
 .PHONY debug:
 debug: $(SNAKEFILE) $(GENOMES) $(CONFIG)
-	$(SNAKEMAKE) --configfile $(CONFIG) -np --print-compilation >| debug.py
-	black debug.py
-	bat --style=plain debug.py
-
-.PHONY install-iscan:
-install-iscan: $(ISCAN_SCRIPT)
-	@printf "To install remove --dry-run option from the line given below:\n\n"
-	$< --reinstall --target $(ISCAN_VERSION) --data $(ISCAN_DATA) --bin $(ISCAN_BIN) --dry-run
+	$(SNAKEMAKE) --configfile $(CONFIG) -np --print-compilation >| $(DEBUG)
+	black $(DEBUG)
+	less $(DEBUG)
 
 
 .PHONY style:
 style:
-	snakefmt .
-	black .
+	snakefmt workflow
+	black workflow utils tests
 	/usr/bin/Rscript -e 'styler::style_dir("workflow")'
 	/usr/bin/Rscript -e 'styler::style_dir("utils")'
 	isort --float-to-top -- utils workflow workflow/Snakefile
@@ -118,28 +149,3 @@ clean:
 	git clean -d -n
 	@printf "\nTo remove untracked files:\n"
 	@printf "    + git clean -d -f\n"
-	@printf "\nTo remove cache data\n"
-	@printf "at $(CACHE) run:\n"
-	@printf "    + make clean-cache\n"
-
-
-.PHONY clean-cache:
-clean-cache:
-	rm -rf $(CACHE)/*
-
-# Debugging print
-# .PHONY print-%:
-# Makefile:126: *** mixed implicit and normal rules: deprecated syntax
-print-%: ; @echo $* = $($*)
-
-
-$(MINIFORGE):
-	wget '$(LINK_MINIFORGE)'
-	wget '$(LINK_SHA256)'
-	sha256sum -c '$(SHA256)'
-
-
-.PHONY install-mamba:
-install-mamba: $(MINIFORGE)
-	bash $(MINIFORGE) -u
-
