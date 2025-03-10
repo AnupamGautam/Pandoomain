@@ -140,7 +140,7 @@ git-config:
 
 .PHONY git-add-upstream:
 git-add-upstream:
-	git remote add upstream https://github.com/elbecerrasoto/hoox
+	git remote add upstream https://github.com/elbecerrasoto/pandoomain
 
 
 .PHONY clean:
