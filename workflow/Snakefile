@@ -18,7 +18,7 @@ rule hmmer_input:
 #        """
 #fd -HI -e faa '^GC' {params} >| {output}
 #"""
-    r"""
+        r"""
     set -euo pipefail
     fd -HI -e faa '^GC' {params.results} >| {output}
     if [ -s {output} ]; then
