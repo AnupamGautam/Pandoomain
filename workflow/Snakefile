@@ -18,15 +18,16 @@ rule hmmer_input:
 #        """
 #fd -HI -e faa '^GC' {params} >| {output}
 #"""
-        r"""
-        # Try to find NCBI-style genomes first (GC*)
-        if fd -HI -e faa '^GC' {params} >| {output}; then
-            echo "Found NCBI-style FAA files (GC*)."
-        else
-            echo "No GC* FAA files found. Falling back to all .faa files."
-            fd -HI -e faa . {params} >| {output}
-        fi
-        """
+    r"""
+    set -euo pipefail
+    fd -HI -e faa '^GC' {params.results} >| {output}
+    if [ -s {output} ]; then
+        echo "Found NCBI-style FAA files (GC*)."
+    else
+        echo "No GC* FAA files found. Falling back to all .faa files."
+        fd -HI -e faa . {params.results} >| {output}
+    fi
+   """
 
 
 rule hmmer:
