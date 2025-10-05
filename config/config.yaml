@@ -48,6 +48,3 @@ only_refseq:
 offline:
   false
 
-
-# new
-local_genomes: false  # set to true when using local FAA/GFF table
