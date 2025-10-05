@@ -19,7 +19,6 @@ rule hmmer_input:
 #fd -HI -e faa '^GC' {params} >| {output}
 #"""
         r"""
-print(f"GENOMES file path: {input}")
         # Try to find NCBI-style genomes first (GC*)
         if fd -HI -e faa '^GC' {params} >| {output}; then
             echo "Found NCBI-style FAA files (GC*)."
