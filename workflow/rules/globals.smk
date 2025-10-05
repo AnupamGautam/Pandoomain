@@ -15,6 +15,7 @@ FAA_WIDTH = int(config.setdefault("faa_width", 80))
 
 ONLY_REFSEQ = bool(config.setdefault("only_refseq", False))
 OFFLINE_MODE = bool(config.setdefault("offline", False))
+LOCAL_GENOMES = bool(config.setdefault("local_genomes", False))
 
 
 assert IN_GENOMES.is_file(), (
@@ -27,5 +28,6 @@ assert IN_QUERIES.is_dir(), (
     + f"\nI failed to find it at: {IN_QUERIES.resolve()}"
 )
 
-if not OFFLINE_MODE:
+#if not OFFLINE_MODE:
+if not OFFLINE_MODE and not LOCAL_GENOMES:
     assert utils.is_internet_on(), utils.bold_red("No network connection.")
