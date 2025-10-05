@@ -252,3 +252,23 @@ rule get_metadata_local:
             w.writerow(["genome", "tax_id"])
             w.writerows(rows)
 
+
+# Canonical targets the rest of the pipeline expects:
+# - results/genomes/genomes.tsv
+# - results/genomes_metadata.tsv
+
+use rule download_genomes as _dl_genomes
+use rule get_metadata     as _dl_metadata
+
+rule prepare_genomes:
+    output:
+        genomes=f"{RESULTS}/genomes/genomes.tsv",
+    input:
+        _dl_genomes.output.genomes if not LOCAL_GENOMES else rules.local_genomes_stage.output.genomes
+
+rule prepare_metadata:
+    output:
+        f"{RESULTS}/genomes_metadata.tsv",
+    input:
+        _dl_metadata.output if not LOCAL_GENOMES else rules.get_metadata_local.output
+
