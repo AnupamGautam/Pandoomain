@@ -133,7 +133,7 @@ rule join_genomes_taxallnomy:
     input:
         taxallnomy=rules.taxallnomy_linname.output,
         #genomes=rules.get_metadata.output,
-        genomes=rules.prepare_metadata.output,
+        genomes=f"{RESULTS}/genomes_metadata.tsv",
     output:
         f"{RESULTS}/genomes_ranks.tsv",
     cache: True
