@@ -50,11 +50,13 @@ SELECT <- c("genome", "nei", "neioff", "order", "pid", "gene", "product", "start
 # Helpers ----
 
 
+# extract_genome <- function(path) {
+#   GENOME_RE <- "GC[FA]_[0-9]+\\.[0-9]"
+#   str_extract(path, GENOME_RE)
+# }
 extract_genome <- function(path) {
-  GENOME_RE <- "GC[FA]_[0-9]+\\.[0-9]"
-  str_extract(path, GENOME_RE)
+  basename(dirname(path))   # .../genomes/<genome>/<genome>.gff -> "<genome>"
 }
-
 
 read_gff <- function(path) {
   OUT_COLS <- c(
