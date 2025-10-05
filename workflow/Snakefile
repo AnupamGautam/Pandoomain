@@ -9,23 +9,16 @@ rule all:
 
 rule hmmer_input:
     input:
-        #rules.download_genomes.output.genomes,
-        f"{RESULTS}/genomes/genomes.tsv",
+        rules.download_genomes.output.genomes,
     output:
         f"{RESULTS}/.input_faas.txt",
     params:
         results=f"{RESULTS}",
     shell:
-#        """
-#fd -HI -e faa '^GC' {params} >| {output}
-#"""
-         r"""
-        awk -F'\t' 'NR>1 {print $2}' {input} \
-        | while read g; do \
-            p="{params}/genomes/"g"/"g".faa"; \
-            if [ -f "$p" ]; then echo "$p"; fi; \
-          done >| {output}
-         """
+        """
+fd -HI -e faa '^GC' {params} >| {output}
+"""
+
 
 
 rule hmmer:
