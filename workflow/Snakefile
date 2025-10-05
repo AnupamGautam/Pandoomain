@@ -10,7 +10,7 @@ rule all:
 rule hmmer_input:
     input:
         #rules.download_genomes.output.genomes,
-        rules.prepare_genomes.output.genomes,
+        f"{RESULTS}/genomes/genomes.tsv",
     output:
         f"{RESULTS}/.input_faas.txt",
     params:
