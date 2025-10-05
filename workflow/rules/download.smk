@@ -69,6 +69,25 @@ def params_output_name(wc, output):
     return str(Path(output[0]).name)
 
 
+#rule taxallnomy_targz:
+#    output:
+#        f"{RESULTS}/taxallnomy.tar.gz",
+#    priority: 1
+#    retries: 3
+#    cache: True
+#    params:
+#        url="https://sourceforge.net/projects/taxallnomy/files/latest/download",
+#        output_name=params_output_name,
+#    shell:
+#        """
+#        aria2c --dir {RESULTS}\
+#            --continue=true --split 12\
+#            --max-connection-per-server=16\
+#            --min-split-size=1M\
+#            --out={params.output_name}\
+#            --quiet\
+#            {params.url}
+#        """
 rule taxallnomy_targz:
     output:
         f"{RESULTS}/taxallnomy.tar.gz",
@@ -79,14 +98,19 @@ rule taxallnomy_targz:
         url="https://sourceforge.net/projects/taxallnomy/files/latest/download",
         output_name=params_output_name,
     shell:
-        """
-        aria2c --dir {RESULTS}\
-            --continue=true --split 12\
-            --max-connection-per-server=16\
-            --min-split-size=1M\
-            --out={params.output_name}\
-            --quiet\
-            {params.url}
+        r"""
+        ( aria2c --dir {RESULTS} \
+                 --continue=true --split=12 \
+                 --max-connection-per-server=16 \
+                 --min-split-size=1M \
+                 --out={params.output_name} \
+                 --quiet \
+                 {params.url} \
+          ) || \
+        wget -O {RESULTS}/{params.output_name} {params.url}
+
+        # sanity check: ensure we didn’t get an HTML page
+        file {RESULTS}/{params.output_name} | grep -qi 'gzip compressed data'
         """
 
 
