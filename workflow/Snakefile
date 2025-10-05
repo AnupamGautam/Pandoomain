@@ -7,51 +7,26 @@ rule all:
         f"{RESULTS}/absence_presence.tsv",
 
 
-#rule hmmer_input:
-#    input:
-#        rules.download_genomes.output.genomes,
-#    output:
-#       f"{RESULTS}/.input_faas.txt",
-#    params:
-#        results=f"{RESULTS}",
-#    shell:
-#        """
-#fd -HI -e faa '^GC' {params} >| {output}
-#"""
-
 rule hmmer_input:
     input:
-        f"{RESULTS}/genomes/genomes.tsv",
+        rules.download_genomes.output.genomes,
     output:
-        f"{RESULTS}/.input_faas.txt",
+       f"{RESULTS}/.input_faas.txt",
     params:
         results=f"{RESULTS}",
     shell:
-       r"""
-       set -euo pipefail
-       # 1) Prefer explicit paths from genomes.tsv: results/genomes/<genome>/<genome>.faa
-       awk -F'\t' 'NR>1 {print $2}' {input} \
-       | while read -r g; do
-            p="{params.results}/genomes/${g}/${g}.faa"
-            if [ -f "$p" ]; then echo "$p"; fi
-         done > {output} || true
-
-       # 2) If nothing found (e.g., legacy layout), try GC*-prefixed FAAs under {RESULTS}
-       if [ ! -s {output} ]; then
-         fd -HI -e faa '^GC' {params.results} >> {output} || true
-       fi
-
-       # 3) Final fallback: any .faa under {RESULTS}
-       if [ ! -s {output} ]; then
-         fd -HI -e faa . {params.results} >> {output} || true
-       fi
-
-       # 4) Hard fail if still empty
-       if [ ! -s {output} ]; then
-         echo "ERROR: No .faa files found for genomes in {input} (and no fallback .faa under {params.results})." >&2
-         exit 2
-       fi
-       """
+#        """
+#fd -HI -e faa '^GC' {params} >| {output}
+#"""
+r"""
+        # Try to find NCBI-style genomes first (GC*)
+        if fd -HI -e faa '^GC' {params.results} >| {output}; then
+            echo "Found NCBI-style FAA files (GC*)."
+        else
+            echo "No GC* FAA files found. Falling back to all .faa files."
+            fd -HI -e faa . {params.results} >| {output}
+        fi
+        """
 
 
 rule hmmer:
