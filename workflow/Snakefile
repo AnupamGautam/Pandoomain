@@ -15,19 +15,9 @@ rule hmmer_input:
     params:
         results=f"{RESULTS}",
     shell:
-#        """
-#fd -HI -e faa '^GC' {params} >| {output}
-#"""
-        r"""
-    set -euo pipefail
-    fd -HI -e faa '^GC' {params.results} >| {output}
-    if [ -s {output} ]; then
-        echo "Found NCBI-style FAA files (GC*)."
-    else
-        echo "No GC* FAA files found. Falling back to all .faa files."
-        fd -HI -e faa . {params.results} >| {output}
-    fi
-   """
+        """
+fd -HI -e faa '^GC' {params} >| {output}
+"""
 
 
 rule hmmer:
