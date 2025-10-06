@@ -17,7 +17,7 @@ QUERIES_DIR = Path(sys.argv[1])
 GENOMES_FILE = sys.argv[2]
 OUT_FILE = Path(sys.argv[3])
 
-#GENOME_REGEX = re.compile(r"(GC[FA]_\d+\.\d)\.faa$")
+GENOME_REGEX = re.compile(r"(GC[FA]_\d+\.\d)\.faa$")
 FIELDS = (
     "genome",
     "pid",
@@ -48,22 +48,12 @@ def get_hmms(queries_path):
     return hmms_files
 
 
-# def parse_genome(genome_path):
-#     genome_path = str(genome_path)
-#     genome = re.search(GENOME_REGEX, genome_path).group(1)
-#     return genome
-
-def parse_genome(genome_path: str) -> str:
-    """Return the genome id from path …/genomes/<genome>/<genome>.faa.
-    Works for MAG names and NCBI accessions alike.
-    """
-    p = Path(genome_path)
-    genome = p.parent.name           # canonical id
-    # Optional sanity check: filename stem should match dir name
-    if p.stem != genome:
-        # not fatal; keep going, but you could raise if you want
-        pass
+def parse_genome(genome_path):
+    genome_path = str(genome_path)
+    genome = re.search(GENOME_REGEX, genome_path).group(1)
     return genome
+
+
 def parse_hit(hit, genome_id):
 
     out = [genome_id] + [
