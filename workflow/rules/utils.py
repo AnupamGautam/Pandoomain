@@ -18,7 +18,7 @@ def is_internet_on():
     import socket
 
     try:
-        socket.create_connection(("1.1.1.1", 53))
+        socket.create_connection(("1.1.1.1", 53)) #change it to 443 it port 53 is not accessible 
         return True
     except OSError:
         return False
